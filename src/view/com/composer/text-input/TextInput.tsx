@@ -19,7 +19,8 @@ import PasteInput, {
   PasteInputRef,
 } from '@mattermost/react-native-paste-input'
 
-import {POST_IMG_MAX} from 'lib/constants'
+import {colors} from '#/lib/styles'
+import {MAX_GRAPHEME_LENGTH, POST_IMG_MAX} from 'lib/constants'
 import {usePalette} from 'lib/hooks/usePalette'
 import {downloadAndResize} from 'lib/media/manip'
 import {isUriImage} from 'lib/media/util'
@@ -193,9 +194,33 @@ export const TextInput = forwardRef(function TextInputImpl(
   )
 
   const textDecorated = useMemo(() => {
+    let excess
+    let truncatedRichtext = richtext
+    if (richtext.graphemeLength > MAX_GRAPHEME_LENGTH) {
+      truncatedRichtext = richtext.clone()
+      const excessText =
+        truncatedRichtext.unicodeText.slice(MAX_GRAPHEME_LENGTH)
+      excess = (
+        <Text
+          key="excess"
+          style={[
+            pal.text,
+            styles.textInputFormatting,
+            theme.colorScheme === 'light'
+              ? styles.textInputExcess
+              : styles.textInputExcessDark,
+          ]}>
+          {excessText}
+        </Text>
+      )
+      truncatedRichtext.delete(
+        MAX_GRAPHEME_LENGTH,
+        truncatedRichtext.graphemeLength,
+      )
+    }
     let i = 0
 
-    return Array.from(richtext.segments()).map(segment => {
+    const segments = Array.from(truncatedRichtext.segments()).map(segment => {
       return (
         <Text
           key={i++}
@@ -207,7 +232,13 @@ export const TextInput = forwardRef(function TextInputImpl(
         </Text>
       )
     })
-  }, [richtext, pal.link, pal.text])
+
+    if (excess) {
+      segments.push(excess)
+    }
+
+    return segments
+  }, [richtext, pal.link, pal.text, theme.colorScheme])
 
   return (
     <View style={styles.container}>
@@ -260,5 +291,11 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     // This is broken on ios right now, so don't set it there.
     lineHeight: isIOS ? undefined : 23.4, // 1.3*16
+  },
+  textInputExcess: {
+    backgroundColor: colors.red1,
+  },
+  textInputExcessDark: {
+    backgroundColor: colors.red7,
   },
 })
