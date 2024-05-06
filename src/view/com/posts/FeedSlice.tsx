@@ -1,14 +1,15 @@
 import React, {memo} from 'react'
 import {StyleSheet, View} from 'react-native'
-import {FeedPostSlice} from '#/state/queries/post-feed'
-import {AtUri} from '@atproto/api'
-import {Link} from '../util/Link'
-import {Text} from '../util/text/Text'
 import Svg, {Circle, Line} from 'react-native-svg'
-import {FeedItem} from './FeedItem'
+import {AtUri} from '@atproto/api'
+import {Trans} from '@lingui/macro'
+
+import {FeedPostSlice} from '#/state/queries/post-feed'
 import {usePalette} from 'lib/hooks/usePalette'
 import {makeProfileLink} from 'lib/routes/links'
-import {Trans} from '@lingui/macro'
+import {Link} from '../util/Link'
+import {Text} from '../util/text/Text'
+import {FeedItem} from './FeedItem'
 
 let FeedSlice = ({slice}: {slice: FeedPostSlice}): React.ReactNode => {
   if (slice.isThread && slice.items.length > 3) {
@@ -23,6 +24,7 @@ let FeedSlice = ({slice}: {slice: FeedPostSlice}): React.ReactNode => {
           moderation={slice.items[0].moderation}
           isThreadParent={isThreadParentAt(slice.items, 0)}
           isThreadChild={isThreadChildAt(slice.items, 0)}
+          grandparentAuthor={slice.items[0].grandparentAuthor}
         />
         <FeedItem
           key={slice.items[1]._reactKey}
@@ -61,6 +63,9 @@ let FeedSlice = ({slice}: {slice: FeedPostSlice}): React.ReactNode => {
           isThreadChild={isThreadChildAt(slice.items, i)}
           isThreadLastChild={
             isThreadChildAt(slice.items, i) && slice.items.length === i + 1
+          }
+          grandparentAuthor={
+            i === 0 ? slice.items[i].grandparentAuthor : undefined
           }
         />
       ))}
