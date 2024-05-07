@@ -17,6 +17,7 @@ import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {POST_TOMBSTONE, Shadow, usePostShadow} from '#/state/cache/post-shadow'
+import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useComposerControls} from '#/state/shell/composer'
 import {isReasonFeedSource, ReasonFeedSource} from 'lib/api/feed/types'
 import {MAX_POST_LINES} from 'lib/constants'
@@ -44,6 +45,7 @@ import {PreviewableUserAvatar} from '../util/UserAvatar'
 interface FeedItemProps {
   record: AppBskyFeedPost.Record
   reason: AppBskyFeedDefs.ReasonRepost | ReasonFeedSource | undefined
+  feedContext: string | undefined
   moderation: ModerationDecision
   parentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
   showReplyTo: boolean
@@ -56,6 +58,7 @@ export function FeedItem({
   post,
   record,
   reason,
+  feedContext,
   moderation,
   parentAuthor,
   showReplyTo,
@@ -83,6 +86,7 @@ export function FeedItem({
         post={postShadowed}
         record={record}
         reason={reason}
+        feedContext={feedContext}
         richText={richText}
         parentAuthor={parentAuthor}
         showReplyTo={showReplyTo}
@@ -100,6 +104,7 @@ let FeedItemInner = ({
   post,
   record,
   reason,
+  feedContext,
   richText,
   moderation,
   parentAuthor,
@@ -119,8 +124,14 @@ let FeedItemInner = ({
     const urip = new AtUri(post.uri)
     return makeProfileLink(post.author, 'post', urip.rkey)
   }, [post.uri, post.author])
+  const {sendInteraction} = useFeedFeedbackContext()
 
   const onPressReply = React.useCallback(() => {
+    sendInteraction({
+      item: post.uri,
+      event: 'app.bsky.feed.defs#interactionReply',
+      feedContext,
+    })
     openComposer({
       replyTo: {
         uri: post.uri,
@@ -131,11 +142,40 @@ let FeedItemInner = ({
         moderation,
       },
     })
-  }, [post, record, openComposer, moderation])
+  }, [post, record, openComposer, moderation, sendInteraction, feedContext])
+
+  const onOpenAuthor = React.useCallback(() => {
+    sendInteraction({
+      item: post.uri,
+      event: 'app.bsky.feed.defs#clickthroughAuthor',
+      feedContext,
+    })
+  }, [sendInteraction, post, feedContext])
+
+  const onOpenReposter = React.useCallback(() => {
+    sendInteraction({
+      item: post.uri,
+      event: 'app.bsky.feed.defs#clickthroughReposter',
+      feedContext,
+    })
+  }, [sendInteraction, post, feedContext])
+
+  const onOpenEmbed = React.useCallback(() => {
+    sendInteraction({
+      item: post.uri,
+      event: 'app.bsky.feed.defs#clickthroughEmbed',
+      feedContext,
+    })
+  }, [sendInteraction, post, feedContext])
 
   const onBeforePress = React.useCallback(() => {
+    sendInteraction({
+      item: post.uri,
+      event: 'app.bsky.feed.defs#clickthroughItem',
+      feedContext,
+    })
     precacheProfile(queryClient, post.author)
-  }, [queryClient, post.author])
+  }, [queryClient, post, sendInteraction, feedContext])
 
   const outerStyles = [
     styles.outer,
@@ -202,7 +242,8 @@ let FeedItemInner = ({
                 msg`Reposted by ${sanitizeDisplayName(
                   reason.by.displayName || reason.by.handle,
                 )}`,
-              )}>
+              )}
+              onBeforePress={onOpenReposter}>
               <FontAwesomeIcon
                 icon="retweet"
                 style={{
@@ -230,6 +271,7 @@ let FeedItemInner = ({
                         moderation.ui('displayName'),
                       )}
                       href={makeProfileLink(reason.by)}
+                      onBeforePress={onOpenReposter}
                     />
                   </ProfileHoverCard>
                 </Trans>
@@ -246,6 +288,7 @@ let FeedItemInner = ({
             profile={post.author}
             moderation={moderation.ui('avatar')}
             type={post.author.associated?.labeler ? 'labeler' : 'user'}
+            onBeforePress={onOpenAuthor}
           />
           {isThreadParent && (
             <View
@@ -267,6 +310,7 @@ let FeedItemInner = ({
             authorHasWarning={!!post.author.labels?.length}
             timestamp={post.indexedAt}
             postHref={href}
+            onOpenAuthor={onOpenAuthor}
           />
           {!isThreadChild && showReplyTo && parentAuthor && (
             <ReplyToLabel profile={parentAuthor} />
@@ -277,6 +321,7 @@ let FeedItemInner = ({
             richText={richText}
             postEmbed={post.embed}
             postAuthor={post.author}
+            onOpenEmbed={onOpenEmbed}
           />
           <PostCtrls
             post={post}
@@ -284,6 +329,7 @@ let FeedItemInner = ({
             richText={richText}
             onPressReply={onPressReply}
             logContext="FeedItem"
+            feedContext={feedContext}
           />
         </View>
       </View>
@@ -297,11 +343,13 @@ let PostContent = ({
   richText,
   postEmbed,
   postAuthor,
+  onOpenEmbed,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
   postEmbed: AppBskyFeedDefs.PostView['embed']
   postAuthor: AppBskyFeedDefs.PostView['author']
+  onOpenEmbed: () => void
 }): React.ReactNode => {
   const pal = usePalette('default')
   const {_} = useLingui()
@@ -342,7 +390,11 @@ let PostContent = ({
       ) : undefined}
       {postEmbed ? (
         <View style={[a.pb_sm]}>
-          <PostEmbeds embed={postEmbed} moderation={moderation} />
+          <PostEmbeds
+            embed={postEmbed}
+            moderation={moderation}
+            onOpen={onOpenEmbed}
+          />
         </View>
       ) : null}
     </ContentHider>

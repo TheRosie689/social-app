@@ -1,30 +1,30 @@
 import React from 'react'
 import {Pressable, StyleProp, StyleSheet, View, ViewStyle} from 'react-native'
-import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
-import {Text} from '../util/text/Text'
-import {RichText} from '#/components/RichText'
-import {usePalette} from 'lib/hooks/usePalette'
-import {s} from 'lib/styles'
-import {UserAvatar} from '../util/UserAvatar'
-import {pluralize} from 'lib/strings/helpers'
 import {AtUri} from '@atproto/api'
-import * as Toast from 'view/com/util/Toast'
-import {sanitizeHandle} from 'lib/strings/handles'
-import {logger} from '#/logger'
-import {Trans, msg} from '@lingui/macro'
+import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
+import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
+
+import {logger} from '#/logger'
+import {FeedSourceInfo, useFeedSourceInfoQuery} from '#/state/queries/feed'
 import {
   usePinFeedMutation,
-  UsePreferencesQueryResponse,
   usePreferencesQuery,
-  useSaveFeedMutation,
+  UsePreferencesQueryResponse,
   useRemoveFeedMutation,
+  useSaveFeedMutation,
 } from '#/state/queries/preferences'
-import {useFeedSourceInfoQuery, FeedSourceInfo} from '#/state/queries/feed'
+import {useNavigationDeduped} from 'lib/hooks/useNavigationDeduped'
+import {usePalette} from 'lib/hooks/usePalette'
+import {sanitizeHandle} from 'lib/strings/handles'
+import {s} from 'lib/styles'
 import {FeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
+import * as Toast from 'view/com/util/Toast'
 import {useTheme} from '#/alf'
 import * as Prompt from '#/components/Prompt'
-import {useNavigationDeduped} from 'lib/hooks/useNavigationDeduped'
+import {RichText} from '#/components/RichText'
+import {Text} from '../util/text/Text'
+import {UserAvatar} from '../util/UserAvatar'
 
 export function FeedSourceCard({
   feedUri,
@@ -265,10 +265,11 @@ export function FeedSourceCardLoaded({
 
         {showLikes && feed.type === 'feed' ? (
           <Text type="sm-medium" style={[pal.text, pal.textLight]}>
-            <Trans>
-              Liked by {feed.likeCount || 0}{' '}
-              {pluralize(feed.likeCount || 0, 'user')}
-            </Trans>
+            <Plural
+              value={feed.likeCount || 0}
+              one="Liked by # user"
+              other="Liked by # users"
+            />
           </Text>
         ) : null}
       </Pressable>
