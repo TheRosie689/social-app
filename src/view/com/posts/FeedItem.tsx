@@ -41,25 +41,28 @@ import {PostMeta} from '../util/PostMeta'
 import {Text} from '../util/text/Text'
 import {PreviewableUserAvatar} from '../util/UserAvatar'
 
+interface FeedItemProps {
+  record: AppBskyFeedPost.Record
+  reason: AppBskyFeedDefs.ReasonRepost | ReasonFeedSource | undefined
+  moderation: ModerationDecision
+  parentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
+  showReplyTo: boolean
+  isThreadChild?: boolean
+  isThreadLastChild?: boolean
+  isThreadParent?: boolean
+}
+
 export function FeedItem({
   post,
   record,
   reason,
   moderation,
-  replyToAuthor,
+  parentAuthor,
+  showReplyTo,
   isThreadChild,
   isThreadLastChild,
   isThreadParent,
-}: {
-  post: AppBskyFeedDefs.PostView
-  record: AppBskyFeedPost.Record
-  reason: AppBskyFeedDefs.ReasonRepost | ReasonFeedSource | undefined
-  moderation: ModerationDecision
-  replyToAuthor?: AppBskyActorDefs.ProfileViewBasic
-  isThreadChild?: boolean
-  isThreadLastChild?: boolean
-  isThreadParent?: boolean
-}) {
+}: FeedItemProps & {post: AppBskyFeedDefs.PostView}): React.ReactNode {
   const postShadowed = usePostShadow(post)
   const richText = useMemo(
     () =>
@@ -81,11 +84,12 @@ export function FeedItem({
         record={record}
         reason={reason}
         richText={richText}
+        parentAuthor={parentAuthor}
+        showReplyTo={showReplyTo}
         moderation={moderation}
         isThreadChild={isThreadChild}
         isThreadLastChild={isThreadLastChild}
         isThreadParent={isThreadParent}
-        replyToAuthor={replyToAuthor}
       />
     )
   }
@@ -98,20 +102,14 @@ let FeedItemInner = ({
   reason,
   richText,
   moderation,
-  replyToAuthor,
+  parentAuthor,
+  showReplyTo,
   isThreadChild,
   isThreadLastChild,
   isThreadParent,
-}: {
-  post: Shadow<AppBskyFeedDefs.PostView>
-  record: AppBskyFeedPost.Record
-  reason: AppBskyFeedDefs.ReasonRepost | ReasonFeedSource | undefined
+}: FeedItemProps & {
   richText: RichTextAPI
-  moderation: ModerationDecision
-  replyToAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
-  isThreadChild?: boolean
-  isThreadLastChild?: boolean
-  isThreadParent?: boolean
+  post: Shadow<AppBskyFeedDefs.PostView>
 }): React.ReactNode => {
   const queryClient = useQueryClient()
   const {openComposer} = useComposerControls()
@@ -270,8 +268,8 @@ let FeedItemInner = ({
             timestamp={post.indexedAt}
             postHref={href}
           />
-          {!isThreadChild && replyToAuthor && (
-            <ReplyToLabel grandparentAuthor={replyToAuthor} />
+          {!isThreadChild && showReplyTo && parentAuthor && (
+            <ReplyToLabel profile={parentAuthor} />
           )}
           <LabelsOnMyPost post={post} />
           <PostContent
@@ -352,11 +350,7 @@ let PostContent = ({
 }
 PostContent = memo(PostContent)
 
-function ReplyToLabel({
-  grandparentAuthor,
-}: {
-  grandparentAuthor: AppBskyActorDefs.ProfileViewBasic
-}) {
+function ReplyToLabel({profile}: {profile: AppBskyActorDefs.ProfileViewBasic}) {
   const pal = usePalette('default')
 
   return (
@@ -373,17 +367,17 @@ function ReplyToLabel({
         numberOfLines={1}>
         <Trans context="description">
           Reply to{' '}
-          <ProfileHoverCard inline did={grandparentAuthor.did}>
+          <ProfileHoverCard inline did={profile.did}>
             <TextLinkOnWebOnly
               type="md"
               style={pal.textLight}
               lineHeight={1.2}
               numberOfLines={1}
-              href={makeProfileLink(grandparentAuthor)}
+              href={makeProfileLink(profile)}
               text={
-                grandparentAuthor.displayName
-                  ? sanitizeDisplayName(grandparentAuthor.displayName)
-                  : sanitizeHandle(grandparentAuthor.handle)
+                profile.displayName
+                  ? sanitizeDisplayName(profile.displayName)
+                  : sanitizeHandle(profile.handle)
               }
             />
           </ProfileHoverCard>
