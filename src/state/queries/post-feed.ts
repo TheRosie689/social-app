@@ -295,7 +295,7 @@ export function usePostFeedQuery(
                         ) {
                           const parentAuthor =
                             item.reply?.parent?.author ??
-                            slice.items[i + 1].reply?.grandparentAuthor
+                            slice.items[i + 1]?.reply?.grandparentAuthor
 
                           return {
                             _reactKey: `${slice._reactKey}-${i}-${item.post.uri}`,
