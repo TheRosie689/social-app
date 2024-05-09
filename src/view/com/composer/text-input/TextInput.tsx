@@ -13,11 +13,12 @@ import {
   TextInputSelectionChangeEventData,
   View,
 } from 'react-native'
-import {AppBskyRichtextFacet, RichText} from '@atproto/api'
+import {AppBskyRichtextFacet, RichText, UnicodeString} from '@atproto/api'
 import PasteInput, {
   PastedFile,
   PasteInputRef,
 } from '@mattermost/react-native-paste-input'
+import Graphemer from 'graphemer'
 
 import {colors} from '#/lib/styles'
 import {MAX_GRAPHEME_LENGTH, POST_IMG_MAX} from 'lib/constants'
@@ -193,13 +194,15 @@ export const TextInput = forwardRef(function TextInputImpl(
     [onChangeText, richtext, setAutocompletePrefix],
   )
 
+  const splitter = useMemo(() => new Graphemer(), [])
   const textDecorated = useMemo(() => {
     let excess
-    let truncatedRichtext = richtext
     if (richtext.graphemeLength > MAX_GRAPHEME_LENGTH) {
-      truncatedRichtext = richtext.clone()
-      const excessText =
-        truncatedRichtext.unicodeText.slice(MAX_GRAPHEME_LENGTH)
+      const split = splitter.splitGraphemes(richtext.text)
+      const validText = split.slice(0, MAX_GRAPHEME_LENGTH).join('')
+      const validUnicode = new UnicodeString(validText)
+      const excessText = split.slice(MAX_GRAPHEME_LENGTH).join('')
+      richtext.delete(validUnicode.utf8.byteLength, richtext.length)
       excess = (
         <Text
           key="excess"
@@ -213,14 +216,10 @@ export const TextInput = forwardRef(function TextInputImpl(
           {excessText}
         </Text>
       )
-      truncatedRichtext.delete(
-        MAX_GRAPHEME_LENGTH,
-        truncatedRichtext.graphemeLength,
-      )
     }
     let i = 0
 
-    const segments = Array.from(truncatedRichtext.segments()).map(segment => {
+    const segments = Array.from(richtext.segments()).map(segment => {
       return (
         <Text
           key={i++}
@@ -238,7 +237,7 @@ export const TextInput = forwardRef(function TextInputImpl(
     }
 
     return segments
-  }, [richtext, pal.link, pal.text, theme.colorScheme])
+  }, [richtext, pal.link, pal.text, theme.colorScheme, splitter])
 
   return (
     <View style={styles.container}>
