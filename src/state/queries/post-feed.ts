@@ -45,8 +45,8 @@ type AuthorFilter =
   | 'posts_with_media'
 type FeedUri = string
 type ListUri = string
+
 export type FeedDescriptor =
-  | 'home'
   | 'following'
   | `author|${ActorDid}|${AuthorFilter}`
   | `feedgen|${FeedUri}`
@@ -309,7 +309,7 @@ export function usePostFeedQuery(
                               i === 0 && slice.source
                                 ? slice.source
                                 : item.reason,
-                            feedContext: item.feedContext,
+                            feedContext: item.feedContext || slice.feedContext,
                             moderation: moderations[i],
                             parentAuthor,
                           }
@@ -397,7 +397,7 @@ function createApi({
   userInterests?: string
   getAgent: () => BskyAgent
 }) {
-  if (feedDesc === 'home') {
+  if (feedDesc === 'following') {
     if (feedParams.mergeFeedEnabled) {
       return new MergeFeedAPI({
         getAgent,
@@ -408,8 +408,6 @@ function createApi({
     } else {
       return new HomeFeedAPI({getAgent, userInterests})
     }
-  } else if (feedDesc === 'following') {
-    return new FollowingFeedAPI({getAgent})
   } else if (feedDesc.startsWith('author')) {
     const [_, actor, filter] = feedDesc.split('|')
     return new AuthorFeedAPI({getAgent, feedParams: {actor, filter}})
