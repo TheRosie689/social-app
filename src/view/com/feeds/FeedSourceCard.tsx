@@ -12,7 +12,6 @@ import {
   usePreferencesQuery,
   UsePreferencesQueryResponse,
   useRemoveFeedMutation,
-  useSaveFeedMutation,
 } from '#/state/queries/preferences'
 import {useNavigationDeduped} from 'lib/hooks/useNavigationDeduped'
 import {usePalette} from 'lib/hooks/usePalette'
