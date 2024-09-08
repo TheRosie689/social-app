@@ -1,6 +1,7 @@
 import React, {memo, useCallback} from 'react'
 import {StyleProp, StyleSheet, TextStyle, View, ViewStyle} from 'react-native'
 import {AppBskyActorDefs, ModerationDecision, ModerationUI} from '@atproto/api'
+import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {precacheProfile} from '#/state/queries/profile'
@@ -35,6 +36,8 @@ interface PostMetaOpts {
 }
 
 let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
+  const {i18n} = useLingui()
+
   const pal = usePalette('default')
   const displayName = opts.author.displayName || opts.author.handle
   const handle = opts.author.handle
@@ -91,11 +94,7 @@ let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
         </Text>
       </ProfileHoverCard>
       {!isAndroid && (
-        <Text
-          type="md"
-          style={pal.textLight}
-          lineHeight={1.2}
-          accessible={false}>
+        <Text type="md" style={pal.textLight} accessible={false}>
           &middot;
         </Text>
       )}
@@ -104,10 +103,9 @@ let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
           <TextLinkOnWebOnly
             type="md"
             style={pal.textLight}
-            lineHeight={1.2}
             text={timeElapsed}
-            accessibilityLabel={niceDate(opts.timestamp)}
-            title={niceDate(opts.timestamp)}
+            accessibilityLabel={niceDate(i18n, opts.timestamp)}
+            title={niceDate(i18n, opts.timestamp)}
             accessibilityHint=""
             href={opts.postHref}
             onBeforePress={onBeforePressPost}

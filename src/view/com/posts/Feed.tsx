@@ -14,7 +14,6 @@ import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
-import {FALLBACK_MARKER_POST} from '#/lib/api/feed/home'
 import {DISCOVER_FEED_URI, KNOWN_SHUTDOWN_FEEDS} from '#/lib/constants'
 import {logEvent, useGate} from '#/lib/statsig/statsig'
 import {logger} from '#/logger'
@@ -102,7 +101,7 @@ const feedInterstitialType = 'interstitialFeeds'
 const followInterstitialType = 'interstitialFollows'
 const progressGuideInterstitialType = 'interstitialProgressGuide'
 const interstials: Record<
-  'following' | 'discover',
+  'following' | 'discover' | 'profile',
   (FeedItem & {
     type:
       | 'interstitialFeeds'
@@ -127,6 +126,16 @@ const interstials: Record<
       },
       key: followInterstitialType,
       slot: 20,
+    },
+  ],
+  profile: [
+    {
+      type: followInterstitialType,
+      params: {
+        variant: 'default',
+      },
+      key: followInterstitialType,
+      slot: 5,
     },
   ],
 }
@@ -162,6 +171,7 @@ let Feed = ({
   ListHeaderComponent,
   extraData,
   savedFeedConfig,
+  initialNumToRender: initialNumToRenderOverride,
 }: {
   feed: FeedDescriptor
   feedParams?: FeedParams
@@ -181,6 +191,7 @@ let Feed = ({
   ListHeaderComponent?: () => JSX.Element
   extraData?: any
   savedFeedConfig?: AppBskyActorDefs.SavedFeed
+  initialNumToRender?: number
 }): React.ReactNode => {
   const theme = useTheme()
   const {track} = useAnalytics()
@@ -192,9 +203,7 @@ let Feed = ({
   const [isPTRing, setIsPTRing] = React.useState(false)
   const checkForNewRef = React.useRef<(() => void) | null>(null)
   const lastFetchRef = React.useRef<number>(Date.now())
-  const [feedType, feedUri] = feed.split('|')
-  const feedIsDiscover = feedUri === DISCOVER_FEED_URI
-  const feedIsFollowing = feedType === 'following'
+  const [feedType, feedUri, feedTab] = feed.split('|')
   const gate = useGate()
 
   const opts = React.useMemo(
@@ -212,8 +221,9 @@ let Feed = ({
     isFetchingNextPage,
     fetchNextPage,
   } = usePostFeedQuery(feed, feedParams, opts)
-  if (data?.pages[0]) {
-    lastFetchRef.current = data?.pages[0].fetchedAt
+  const lastFetchedAt = data?.pages[0].fetchedAt
+  if (lastFetchedAt) {
+    lastFetchRef.current = lastFetchedAt
   }
   const isEmpty = React.useMemo(
     () => !isFetching && !data?.pages?.some(page => page.slices.length),
@@ -337,19 +347,25 @@ let Feed = ({
     }
 
     if (hasSession) {
-      const feedType = feedIsFollowing
-        ? 'following'
-        : feedIsDiscover
-        ? 'discover'
-        : undefined
+      let feedKind: 'following' | 'discover' | 'profile' | undefined
+      if (feedType === 'following') {
+        feedKind = 'following'
+      } else if (feedUri === DISCOVER_FEED_URI) {
+        feedKind = 'discover'
+      } else if (
+        feedType === 'author' &&
+        (feedTab === 'posts_and_author_threads' ||
+          feedTab === 'posts_with_replies')
+      ) {
+        feedKind = 'profile'
+      }
 
-      if (feedType) {
-        for (const interstitial of interstials[feedType]) {
+      if (feedKind) {
+        for (const interstitial of interstials[feedKind]) {
           const shouldShow =
             (interstitial.type === feedInterstitialType &&
               gate('suggested_feeds_interstitial')) ||
-            (interstitial.type === followInterstitialType &&
-              gate('suggested_follows_interstitial')) ||
+            interstitial.type === followInterstitialType ||
             interstitial.type === progressGuideInterstitialType
 
           if (shouldShow) {
@@ -358,7 +374,7 @@ let Feed = ({
               ...interstitial,
               params: {variant},
               // overwrite key with unique value
-              key: [interstitial.type, variant].join(':'),
+              key: [interstitial.type, variant, lastFetchedAt].join(':'),
             }
 
             if (arr.length > interstitial.slot) {
@@ -374,10 +390,11 @@ let Feed = ({
     isFetched,
     isError,
     isEmpty,
+    lastFetchedAt,
     data,
+    feedType,
     feedUri,
-    feedIsDiscover,
-    feedIsFollowing,
+    feedTab,
     gate,
     hasSession,
   ])
@@ -468,20 +485,18 @@ let Feed = ({
       } else if (item.type === feedInterstitialType) {
         return <SuggestedFeeds />
       } else if (item.type === followInterstitialType) {
-        return <SuggestedFollows />
+        return <SuggestedFollows feed={feed} />
       } else if (item.type === progressGuideInterstitialType) {
         return <ProgressGuide />
       } else if (item.type === 'slice') {
-        if (item.slice.rootUri === FALLBACK_MARKER_POST.post.uri) {
+        if (item.slice.isFallbackMarker) {
           // HACK
           // tell the user we fell back to discover
           // see home.ts (feed api) for more info
           // -prf
           return <DiscoverFallbackHeader />
         }
-        return (
-          <FeedSlice slice={item.slice} hideTopBorder={index === 0 && !isWeb} />
-        )
+        return <FeedSlice slice={item.slice} hideTopBorder={index === 0} />
       } else {
         return null
       }
@@ -546,8 +561,10 @@ let Feed = ({
         desktopFixedHeight={
           desktopFixedHeightOffset ? desktopFixedHeightOffset : true
         }
-        initialNumToRender={initialNumToRender}
-        windowSize={11}
+        initialNumToRender={initialNumToRenderOverride ?? initialNumToRender}
+        windowSize={9}
+        maxToRenderPerBatch={5}
+        updateCellsBatchingPeriod={40}
         onItemSeen={feedFeedback.onItemSeen}
       />
     </View>

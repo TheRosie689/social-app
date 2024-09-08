@@ -5,7 +5,10 @@ import {runOnJS, useSharedValue} from 'react-native-reanimated'
 import {useAnimatedScrollHandler} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {useScrollHandlers} from '#/lib/ScrollContext'
+import {useDedupe} from 'lib/hooks/useDedupe'
 import {addStyle} from 'lib/styles'
+import {isIOS} from 'platform/detection'
+import {updateActiveViewAsync} from '../../../../modules/expo-bluesky-swiss-army/src/VisibilityView'
 import {FlatList_INTERNAL} from './Views'
 
 export type ListMethods = FlatList_INTERNAL
@@ -28,8 +31,6 @@ export type ListProps<ItemT> = Omit<
   // Web only prop to contain the scroll to the container rather than the window
   disableFullWindowScroll?: boolean
   sideBorders?: boolean
-  // Web only prop to disable a perf optimization (which would otherwise be on).
-  disableContainStyle?: boolean
 }
 export type ListRef = React.MutableRefObject<FlatList_INTERNAL | null>
 
@@ -49,6 +50,7 @@ function ListImpl<ItemT>(
 ) {
   const isScrolledDown = useSharedValue(false)
   const pal = usePalette('default')
+  const dedupe = useDedupe(400)
 
   function handleScrolledDownChange(didScrollDown: boolean) {
     onScrolledDownChange?.(didScrollDown)
@@ -67,6 +69,7 @@ function ListImpl<ItemT>(
       onBeginDragFromContext?.(e, ctx)
     },
     onEndDrag(e, ctx) {
+      runOnJS(updateActiveViewAsync)()
       onEndDragFromContext?.(e, ctx)
     },
     onScroll(e, ctx) {
@@ -79,10 +82,15 @@ function ListImpl<ItemT>(
           runOnJS(handleScrolledDownChange)(didScrollDown)
         }
       }
+
+      if (isIOS) {
+        runOnJS(dedupe)(updateActiveViewAsync)
+      }
     },
     // Note: adding onMomentumBegin here makes simulator scroll
     // lag on Android. So either don't add it, or figure out why.
     onMomentumEnd(e, ctx) {
+      runOnJS(updateActiveViewAsync)()
       onMomentumEndFromContext?.(e, ctx)
     },
   })
