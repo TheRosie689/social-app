@@ -43,6 +43,7 @@ export function Controls({
   setFocused,
   onScreen,
   fullscreenRef,
+  hlsLoading,
   hasSubtitleTrack,
 }: {
   videoRef: React.RefObject<HTMLVideoElement>
@@ -53,6 +54,7 @@ export function Controls({
   setFocused: (focused: boolean) => void
   onScreen: boolean
   fullscreenRef: React.RefObject<HTMLDivElement>
+  hlsLoading: boolean
   hasSubtitleTrack: boolean
 }) {
   const {
@@ -80,6 +82,7 @@ export function Controls({
   const [isFullscreen, toggleFullscreen] = useFullscreen(fullscreenRef)
   const {state: hasFocus, onIn: onFocus, onOut: onBlur} = useInteractionState()
   const [interactingViaKeypress, setInteractingViaKeypress] = useState(false)
+  const showSpinner = hlsLoading || buffering
   const {
     state: volumeHovered,
     onIn: onVolumeHover,
@@ -358,9 +361,8 @@ export function Controls({
           style={[
             a.flex_1,
             a.px_xs,
-            a.pt_2xs,
-            a.pb_md,
-            a.gap_md,
+            a.pb_sm,
+            a.gap_sm,
             a.flex_row,
             a.align_center,
           ]}>
@@ -373,7 +375,11 @@ export function Controls({
             onPress={onPressPlayPause}
           />
           <View style={a.flex_1} />
-          <Text style={{color: t.palette.white, fontVariant: ['tabular-nums']}}>
+          <Text
+            style={[
+              a.px_xs,
+              {color: t.palette.white, fontVariant: ['tabular-nums']},
+            ]}>
             {formatTime(currentTime)} / {formatTime(duration)}
           </Text>
           {hasSubtitleTrack && (
@@ -406,11 +412,11 @@ export function Controls({
           )}
         </View>
       </View>
-      {(buffering || error) && (
+      {(showSpinner || error) && (
         <View
           pointerEvents="none"
           style={[a.absolute, a.inset_0, a.justify_center, a.align_center]}>
-          {buffering && <Loader fill={t.palette.white} size="lg" />}
+          {showSpinner && <Loader fill={t.palette.white} size="lg" />}
           {error && (
             <Text style={{color: t.palette.white}}>
               <Trans>An error occurred</Trans>

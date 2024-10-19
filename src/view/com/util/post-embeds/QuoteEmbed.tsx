@@ -24,15 +24,16 @@ import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {HITSLOP_20} from '#/lib/constants'
+import {usePalette} from '#/lib/hooks/usePalette'
+import {InfoCircleIcon} from '#/lib/icons'
 import {moderatePost_wrapped} from '#/lib/moderatePost_wrapped'
+import {makeProfileLink} from '#/lib/routes/links'
 import {s} from '#/lib/styles'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
+import {precacheProfile} from '#/state/queries/profile'
+import {useResolveLinkQuery} from '#/state/queries/resolve-link'
 import {useSession} from '#/state/session'
-import {usePalette} from 'lib/hooks/usePalette'
-import {InfoCircleIcon} from 'lib/icons'
-import {makeProfileLink} from 'lib/routes/links'
-import {precacheProfile} from 'state/queries/profile'
-import {ComposerOptsQuote} from 'state/shell/composer'
+import {ComposerOptsQuote} from '#/state/shell/composer'
 import {atoms as a, useTheme} from '#/alf'
 import {RichText} from '#/components/RichText'
 import {ContentHider} from '../../../../components/moderation/ContentHider'
@@ -238,7 +239,6 @@ export function QuoteEmbed({
             author={quote.author}
             moderation={moderation}
             showAvatar
-            authorHasWarning={false}
             postHref={itemHref}
             timestamp={quote.indexedAt}
           />
@@ -284,6 +284,24 @@ export function QuoteX({onRemove}: {onRemove: () => void}) {
       hitSlop={HITSLOP_20}>
       <FontAwesomeIcon size={12} icon="xmark" style={s.white} />
     </TouchableOpacity>
+  )
+}
+
+export function LazyQuoteEmbed({uri}: {uri: string}) {
+  const {data} = useResolveLinkQuery(uri)
+  if (!data || data.type !== 'record' || data.kind !== 'post') {
+    return null
+  }
+  return (
+    <QuoteEmbed
+      quote={{
+        cid: data.record.cid,
+        uri: data.record.uri,
+        author: data.meta.author,
+        indexedAt: data.meta.indexedAt,
+        text: data.meta.text,
+      }}
+    />
   )
 }
 

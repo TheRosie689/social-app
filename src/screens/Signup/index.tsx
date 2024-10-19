@@ -5,7 +5,6 @@ import {AppBskyGraphStarterpack} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {useAnalytics} from '#/lib/analytics/analytics'
 import {FEEDBACK_FORM_URL} from '#/lib/constants'
 import {useServiceQuery} from '#/state/queries/service'
 import {useStarterPackQuery} from '#/state/queries/starter-packs'
@@ -31,7 +30,6 @@ import {Text} from '#/components/Typography'
 export function Signup({onPressBack}: {onPressBack: () => void}) {
   const {_} = useLingui()
   const t = useTheme()
-  const {screen} = useAnalytics()
   const [state, dispatch] = React.useReducer(reducer, initialState)
   const {gtMobile} = useBreakpoints()
   const submit = useSubmitSignup()
@@ -55,10 +53,6 @@ export function Signup({onPressBack}: {onPressBack: () => void}) {
     isError,
     refetch,
   } = useServiceQuery(state.serviceUrl)
-
-  React.useEffect(() => {
-    screen('CreateAccount')
-  }, [screen])
 
   React.useEffect(() => {
     if (isFetching) {
@@ -174,7 +168,8 @@ export function Signup({onPressBack}: {onPressBack: () => void}) {
             <View
               style={[a.w_full, a.py_lg, a.flex_row, a.gap_lg, a.align_center]}>
               <AppLanguageDropdown />
-              <Text style={[t.atoms.text, !gtMobile && a.text_md]}>
+              <Text
+                style={[t.atoms.text_contrast_medium, !gtMobile && a.text_md]}>
                 <Trans>Having trouble?</Trans>{' '}
                 <InlineLinkText
                   label={_(msg`Contact support`)}
