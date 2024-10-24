@@ -440,22 +440,6 @@ let PostDropdownBtn = ({
               </Menu.Item>
             )}
 
-            <Menu.Item
-              testID="postDropdownShareBtn"
-              label={isWeb ? _(msg`Copy link to post`) : _(msg`Share`)}
-              onPress={() => {
-                if (showLoggedOutWarning) {
-                  loggedOutWarningPromptControl.open()
-                } else {
-                  onSharePost()
-                }
-              }}>
-              <Menu.ItemText>
-                {isWeb ? _(msg`Copy link to post`) : _(msg`Share`)}
-              </Menu.ItemText>
-              <Menu.ItemIcon icon={Share} position="right" />
-            </Menu.Item>
-
             {canEmbed && (
               <Menu.Item
                 testID="postDropdownEmbedBtn"
