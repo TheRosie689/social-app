@@ -233,13 +233,6 @@ let PostDropdownBtn = ({
     }
   }, [isThreadMuted, unmuteThread, _, muteThread])
 
-  const onCopyPostText = React.useCallback(() => {
-    const str = richTextToString(richText, true)
-
-    Clipboard.setStringAsync(str)
-    Toast.show(_(msg`Copied to clipboard`), 'clipboard-check')
-  }, [_, richText])
-
   const onPressTranslate = React.useCallback(async () => {
     await openLink(translatorUrl)
   }, [openLink, translatorUrl])
